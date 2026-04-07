@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ECG Arrhythmia Detection Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f7fa;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 500px;
+            margin: auto;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        button {
+            background: #2ecc71;
+            border: none;
+            padding: 12px 25px;
+            color: white;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #27ae60;
+        }
+
+        .result {
+            margin-top: 25px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+
+<body>
+
+    <div class="container">
+
+        <h1>ECG Arrhythmia Detection</h1>
+
+        <p>Upload ECG feature CSV file</p>
+
+        <input type="file" id="csvFile" accept=".csv">
+
+        <br><br>
+
+        <button onclick="predictECG()">Predict</button>
+
+        <div class="result" id="result"></div>
+
+    </div>
+
+
+    <script>
+
+        async function predictECG() {
+
+            const file = document.getElementById("csvFile").files[0];
+
+            if (!file) {
+                alert("Please upload a CSV file first.");
+                return;
+            }
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+
+                complete: async function (results) {
+
+                    const jsonData = results.data[0];
+
+                    try {
+
+                        const response = await fetch("http://127.0.0.1:48641/predict", {
+
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+
+                            body: JSON.stringify(jsonData)
+
+                        });
+
+                        const result = await response.json();
+
+                        displayResult(result);
+
+                    }
+
+                    catch (error) {
+
+                        document.getElementById("result").innerHTML =
+                            "Error connecting to API";
+
+                    }
+
+                }
+
+            });
+
+        }
+
+
+        function displayResult(result) {
+
+            if (result.prediction === "Normal ECG") {
+
+                document.getElementById("result").innerHTML =
+                    "Result: Normal ECG";
+
+            }
+
+            else if (result.prediction === "Abnormal ECG") {
+
+                document.getElementById("result").innerHTML =
+                    "Result: Abnormal ECG<br>Type: " + result.arrhythmia_type;
+
+            }
+
+            else {
+
+                document.getElementById("result").innerHTML =
+                    JSON.stringify(result, null, 2);
+
+            }
+
+        }
+
+    </script>
+
+</body>
+
+</html>
