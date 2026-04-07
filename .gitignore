@@ -1,19 +1,41 @@
-# Data files (too large)
+# Local data artifacts (large)
 data/ecg_signals/
 data/*.h5
 
-# Google auth tokens
-.secrets/
-~/.cache/gargle/
-*.json
+# Python virtual environments and cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
 
-# R session
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+.secrets/
+backend/flask_app/.env
+
+# R / RStudio local state
 .Rhistory
 .RData
+.Ruserdata
 .Rproj.user/
+*.Rproj
+~/.cache/gargle/
 
-# Model files (large — optional)
+# Logs and runtime files
+*.log
+*.pid
+
+# Model outputs (optional large binaries)
 outputs/model/*.xgb
 
+# OS / Git editor noise
 .DS_Store
+Thumbs.db
 FETCH_HEAD
+.vscode/settings.json

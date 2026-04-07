@@ -25,8 +25,29 @@ function(req, res){
 # Load trained models
 # ─────────────────────────────
 
-rf_stage1 <- readRDS("outputs/model/rf_stage1_binary.rds")
-rf_stage2 <- readRDS("outputs/model/rf_stage2_multiclass.rds")
+resolve_model_path <- function(filename) {
+  candidates <- c(
+    file.path("outputs", "model", filename),
+    file.path("..", "..", "outputs", "model", filename),
+    file.path("..", "outputs", "model", filename)
+  )
+
+  for (path in candidates) {
+    if (file.exists(path)) {
+      return(path)
+    }
+  }
+
+  stop(
+    paste0(
+      "Model file not found: ", filename,
+      ". Checked: ", paste(candidates, collapse = ", ")
+    )
+  )
+}
+
+rf_stage1 <- readRDS(resolve_model_path("rf_stage1_binary.rds"))
+rf_stage2 <- readRDS(resolve_model_path("rf_stage2_multiclass.rds"))
 
 
 # ─────────────────────────────
