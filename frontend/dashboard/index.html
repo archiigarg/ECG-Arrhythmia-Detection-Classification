@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECG Arrhythmia Detection Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-1: #f0f5f1;
+            --bg-2: #e5efe9;
+            --panel: rgba(255, 255, 255, 0.9);
+            --text-main: #173125;
+            --text-soft: #4a6358;
+            --accent: #1aa060;
+            --accent-dark: #117545;
+            --danger: #b32746;
+            --ring: rgba(26, 160, 96, 0.25);
+            --border: rgba(20, 60, 40, 0.18);
+            --shadow: 0 20px 60px rgba(15, 41, 30, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Space Grotesk", sans-serif;
+            color: var(--text-main);
+            background:
+                radial-gradient(circle at 0% 0%, #d7ebde 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, #cde3d7 0%, transparent 40%),
+                linear-gradient(130deg, var(--bg-1), var(--bg-2));
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .orb {
+            position: fixed;
+            border-radius: 999px;
+            filter: blur(20px);
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 0;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .orb.one {
+            width: 220px;
+            height: 220px;
+            top: 5%;
+            left: 8%;
+            background: #b0e8c8;
+        }
+
+        .orb.two {
+            width: 180px;
+            height: 180px;
+            right: 10%;
+            bottom: 8%;
+            background: #9fd3b4;
+            animation-delay: 1.5s;
+        }
+
+        @keyframes float {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-14px);
+            }
+        }
+
+        .app-shell {
+            width: min(940px, 100%);
+            border: 1px solid var(--border);
+            background: var(--panel);
+            backdrop-filter: blur(4px);
+            box-shadow: var(--shadow);
+            border-radius: 24px;
+            padding: 28px;
+            position: relative;
+            z-index: 1;
+            animation: reveal 450ms ease-out;
+        }
+
+        @keyframes reveal {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .view {
+            min-height: 560px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .eyebrow {
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 0.76rem;
+            color: var(--text-soft);
+            margin-bottom: 8px;
+        }
+
+        .display {
+            font-family: "DM Serif Display", serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            margin: 0;
+            line-height: 1;
+        }
+
+        .subtitle {
+            color: var(--text-soft);
+            max-width: 640px;
+            line-height: 1.5;
+            margin-top: 12px;
+        }
+
+        .login-card {
+            margin-top: 28px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 24px;
+            background: linear-gradient(160deg, #ffffff, #f4fbf7);
+        }
+
+        .button {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-family: inherit;
+            font-size: 0.98rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+        }
+
+        .button-primary {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(26, 160, 96, 0.26);
+        }
+
+        .button-primary:hover {
+            background: var(--accent-dark);
+        }
+
+        .button-secondary {
+            background: #edf7f1;
+            color: #154e33;
+            border: 1px solid var(--border);
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+
+        .user-pill {
+            background: #ecf8f1;
+            border: 1px solid var(--border);
+            color: #1c4d36;
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-weight: 500;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 18px;
+        }
+
+        .panel {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 20px;
+            background: #fff;
+        }
+
+        .panel h2 {
+            margin: 0;
+            font-family: "DM Serif Display", serif;
+            font-size: 1.7rem;
+            line-height: 1.1;
+        }
+
+        .panel p {
+            margin-top: 8px;
+            color: var(--text-soft);
+        }
+
+        .file-wrap {
+            margin-top: 14px;
+        }
+
+        .file-wrap input {
+            width: 100%;
+            border: 1px dashed #97b5a6;
+            border-radius: 12px;
+            padding: 10px;
+            background: #f6fbf8;
+            font-family: inherit;
+        }
+
+        .predict-row {
+            margin-top: 14px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-ok {
+            background: #1aa060;
+            box-shadow: 0 0 0 6px var(--ring);
+        }
+
+        .result-box {
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .result-label {
+            font-size: 0.86rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-soft);
+        }
+
+        .result-main {
+            font-family: "DM Serif Display", serif;
+            font-size: 2rem;
+            line-height: 1.1;
+            margin: 0;
+        }
+
+        .result-sub {
+            margin: 0;
+            color: var(--text-soft);
+            line-height: 1.5;
+        }
+
+        .result-error .result-main {
+            color: var(--danger);
+        }
+
+        @media (max-width: 860px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .view {
+                min-height: auto;
+            }
+
+            .app-shell {
+                padding: 18px;
+                border-radius: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <span class="orb one"></span>
+    <span class="orb two"></span>
+
+    <main class="app-shell">
+        <section id="loginView" class="view hidden">
+            <p class="eyebrow">Secure Access</p>
+            <h1 class="display">ECG Arrhythmia Portal</h1>
+            <p class="subtitle">
+                Sign in with your Google account to access prediction tools and run ECG feature-based arrhythmia checks.
+            </p>
+
+            <div class="login-card">
+                <p class="subtitle" style="margin-top: 0;">
+                    Authentication is required before model prediction.
+                </p>
+                <button id="loginButton" class="button button-primary" type="button">Sign in with Google</button>
+            </div>
+        </section>
+
+        <section id="dashboardView" class="view hidden">
+            <div class="topbar">
+                <div>
+                    <p class="eyebrow" style="margin: 0;">Welcome</p>
+                    <div id="userPill" class="user-pill">Signed in</div>
+                </div>
+                <button id="logoutButton" class="button button-secondary" type="button">Logout</button>
+            </div>
+
+            <div class="dashboard-grid">
+                <article class="panel">
+                    <h2>Run Prediction</h2>
+                    <p>Upload one feature-row CSV and run the two-stage ECG classification workflow.</p>
+
+                    <div class="file-wrap">
+                        <input type="file" id="csvFile" accept=".csv">
+                    </div>
+
+                    <div class="predict-row">
+                        <button id="predictButton" class="button button-primary" type="button">Predict</button>
+                        <div id="apiStatus" class="subtitle" style="margin: 0;">
+                            <span class="status-dot status-ok"></span>API connected
+                        </div>
+                    </div>
+                </article>
+
+                <article id="resultBox" class="panel result-box">
+                    <p class="result-label">Prediction Output</p>
+                    <h3 id="resultMain" class="result-main">Waiting for input</h3>
+                    <p id="resultSub" class="result-sub">Upload a CSV file and click Predict.</p>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const loginView = document.getElementById("loginView");
+        const dashboardView = document.getElementById("dashboardView");
+        const loginButton = document.getElementById("loginButton");
+        const logoutButton = document.getElementById("logoutButton");
+        const predictButton = document.getElementById("predictButton");
+        const csvFileInput = document.getElementById("csvFile");
+        const userPill = document.getElementById("userPill");
+        const resultBox = document.getElementById("resultBox");
+        const resultMain = document.getElementById("resultMain");
+        const resultSub = document.getElementById("resultSub");
+        const apiStatus = document.getElementById("apiStatus");
+
+        function firstValue(value) {
+            if (Array.isArray(value)) {
+                return value.length > 0 ? value[0] : "";
+            }
+            return value;
+        }
+
+        function setView(authenticated, user) {
+            if (authenticated) {
+                loginView.classList.add("hidden");
+                dashboardView.classList.remove("hidden");
+                const name = (user && user.name) ? user.name : (user && user.email ? user.email : "Signed in user");
+                userPill.textContent = "Signed in as " + name;
+            } else {
+                dashboardView.classList.add("hidden");
+                loginView.classList.remove("hidden");
+            }
+        }
+
+        function setResult(title, subtitle, isError) {
+            resultMain.textContent = title;
+            resultSub.textContent = subtitle || "";
+            resultBox.classList.toggle("result-error", !!isError);
+        }
+
+        async function parseApiResponse(response) {
+            const rawText = await response.text();
+            try {
+                return {
+                    data: JSON.parse(rawText),
+                    rawText: rawText
+                };
+            } catch (parseError) {
+                return {
+                    data: null,
+                    rawText: rawText
+                };
+            }
+        }
+
+        async function checkAuth() {
+            try {
+                const response = await fetch("/api/me");
+                if (!response.ok) {
+                    setView(false);
+                    return false;
+                }
+
+                const payload = await response.json();
+                setView(payload.authenticated, payload.user);
+                return !!payload.authenticated;
+            } catch (error) {
+                setView(false);
+                return false;
+            }
+        }
+
+        async function updateHealthStatus() {
+            try {
+                const response = await fetch("/healthz");
+                apiStatus.innerHTML = response.ok
+                    ? '<span class="status-dot status-ok"></span>API connected'
+                    : '<span class="status-dot" style="background:#c9a83f"></span>API uncertain';
+            } catch (error) {
+                apiStatus.innerHTML = '<span class="status-dot" style="background:#b32746"></span>API unreachable';
+            }
+        }
+
+        function displayResult(result) {
+            const prediction = String(firstValue(result.prediction) || "");
+            const arrhythmiaType = String(firstValue(result.arrhythmia_type) || "");
+
+            if (prediction.toLowerCase().includes("normal")) {
+                setResult("Normal ECG", "No abnormal rhythm class detected in this sample.", false);
+                return;
+            }
+
+            if (prediction.toLowerCase().includes("abnormal")) {
+                setResult("Abnormal ECG", arrhythmiaType ? "Detected class: " + arrhythmiaType : "Abnormal rhythm pattern detected.", false);
+                return;
+            }
+
+            setResult("Model Response", JSON.stringify(result), false);
+        }
+
+        async function predictECG() {
+            const isAuthenticated = await checkAuth();
+            if (!isAuthenticated) {
+                setResult("Sign-in Required", "Please sign in with Google before predicting.", true);
+                return;
+            }
+
+            const file = csvFileInput.files[0];
+            if (!file) {
+                setResult("No File Selected", "Upload a CSV feature file first.", true);
+                return;
+            }
+
+            predictButton.disabled = true;
+            predictButton.textContent = "Predicting...";
+            setResult("Running Prediction", "Sending feature payload to API...", false);
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: async function (results) {
+                    const jsonData = results.data[0];
+
+                    if (!jsonData) {
+                        setResult("Invalid CSV", "No data row found in the uploaded file.", true);
+                        predictButton.disabled = false;
+                        predictButton.textContent = "Predict";
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch("/api/predict", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify(jsonData)
+                        });
+
+                        const parsed = await parseApiResponse(response);
+                        const result = parsed.data;
+
+                        if (!response.ok) {
+                            const message = result && (firstValue(result.message) || firstValue(result.error));
+                            setResult("Prediction Failed", message || parsed.rawText || "Prediction request failed", true);
+                            return;
+                        }
+
+                        if (!result) {
+                            setResult("Invalid API Response", parsed.rawText || "Received an unreadable response.", true);
+                            return;
+                        }
+
+                        displayResult(result);
+                    } catch (error) {
+                        setResult("Connection Error", error.message || "Unable to reach the API.", true);
+                        console.error("Prediction request failed", error);
+                    } finally {
+                        predictButton.disabled = false;
+                        predictButton.textContent = "Predict";
+                    }
+                },
+                error: function (error) {
+                    setResult("CSV Parse Error", error.message || "Could not read the CSV file.", true);
+                    predictButton.disabled = false;
+                    predictButton.textContent = "Predict";
+                }
+            });
+        }
+
+        loginButton.addEventListener("click", function () {
+            window.location.href = "/login";
+        });
+
+        logoutButton.addEventListener("click", function () {
+            window.location.href = "/logout";
+        });
+
+        predictButton.addEventListener("click", predictECG);
+
+        checkAuth();
+        updateHealthStatus();
+    </script>
+</body>
+
+</html>

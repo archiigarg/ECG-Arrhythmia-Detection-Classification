@@ -231,3 +231,69 @@ This project is intended for **academic and research purposes only**. It is not 
 
 * Springer Nature Figshare (PTB-XL dataset contributors)
 * Original dataset authors: Wagner et al.
+
+If you find this project useful, consider giving it a ⭐ on GitHub.
+
+## Flask Backend with Google Auth
+
+This repository now includes a Flask backend that:
+
+- serves the dashboard UI,
+- authenticates users with Google OAuth,
+- proxies prediction requests to the existing R Plumber model API.
+
+### Added files
+
+- `backend/flask_app/app.py` - Flask app + Google OAuth + protected API routes
+- `backend/flask_app/requirements.txt` - Python dependencies for Flask backend
+
+### 1) Configure Google OAuth
+
+1. Open Google Cloud Console.
+2. Create or select a project.
+3. Configure OAuth consent screen.
+4. Create OAuth 2.0 Client ID (Web application).
+5. Add this authorized redirect URI:
+
+   `http://127.0.0.1:5000/auth/callback`
+
+### 2) Configure environment
+
+Create `backend/flask_app/.env` and set these values:
+
+- `FLASK_SECRET_KEY`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `MODEL_API_BASE` (default: `http://127.0.0.1:48641`)
+- optional `ALLOWED_EMAIL_DOMAIN`
+
+### 3) Install Python dependencies
+
+```bash
+pip install -r backend/flask_app/requirements.txt
+```
+
+### 4) Start services
+
+Start model API (R Plumber):
+
+```bash
+R -e "plumber::plumb('backend/plumber/plumber.R')$run(host='0.0.0.0', port=48641)"
+```
+
+Start Flask backend:
+
+```bash
+python backend/flask_app/app.py
+```
+
+Open dashboard through Flask:
+
+`http://127.0.0.1:5000`
+
+### API behavior
+
+- `GET /api/me` - check auth session
+- `POST /api/predict` - requires Google login
+
+The dashboard now calls `/api/predict` (Flask), not Plumber directly.
