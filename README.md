@@ -236,3 +236,45 @@ Open dashboard through Flask:
 - `POST /api/predict` - requires Google login
 
 The dashboard now calls `/api/predict` (Flask), not Plumber directly.
+
+## Run On Any Laptop (No Deployment)
+
+You can run the full stack locally with Docker Desktop.
+
+### Prerequisites
+
+- Docker Desktop installed and running
+- A valid Google OAuth Web client configured for local callbacks
+
+### Google OAuth local callbacks
+
+In Google Cloud Console, add both redirect URIs to your OAuth client:
+
+- `http://127.0.0.1:5000/auth/callback`
+- `http://localhost:5000/auth/callback`
+
+If your OAuth consent screen is in testing mode, add each teammate's Gmail as a test user.
+
+### Environment file
+
+Create `backend/flask_app/.env` from `backend/flask_app/.env.example` and set:
+
+- `FLASK_SECRET_KEY`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+
+### Start all services
+
+```bash
+docker compose up --build
+```
+
+Open:
+
+- `http://127.0.0.1:5000`
+
+### Stop services
+
+```bash
+docker compose down
+```

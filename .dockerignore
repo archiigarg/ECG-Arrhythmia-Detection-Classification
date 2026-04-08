@@ -1,0 +1,10 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+.Rhistory
+.RData
+R/.Rhistory
+outputs/plots
+powerbi

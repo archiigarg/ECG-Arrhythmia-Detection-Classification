@@ -1,0 +1,24 @@
+services:
+  plumber:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecg-plumber
+    ports:
+      - "48641:48641"
+    command: ["R", "-e", "plumber::plumb('backend/plumber/plumber.R')$run(host='0.0.0.0', port=48641)"]
+
+  flask:
+    build:
+      context: .
+      dockerfile: backend/flask_app/Dockerfile
+    container_name: ecg-flask
+    env_file:
+      - backend/flask_app/.env
+    environment:
+      MODEL_API_BASE: http://plumber:48641
+      SESSION_COOKIE_SECURE: "false"
+    depends_on:
+      - plumber
+    ports:
+      - "5000:5000"
