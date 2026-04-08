@@ -26,6 +26,7 @@ backend/flask_app/.env
 .Rproj.user/
 *.Rproj
 ~/.cache/gargle/
+.Rapp.history
 
 # Logs and runtime files
 *.log

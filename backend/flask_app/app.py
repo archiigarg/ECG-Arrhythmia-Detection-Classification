@@ -27,14 +27,15 @@ def create_app() -> Flask:
     app = Flask(__name__)
 
     app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-this-in-production")
+    app.config["SESSION_COOKIE_SECURE"] = False
 
-    model_api_base = os.getenv("MODEL_API_BASE", "http://127.0.0.1:48641").rstrip("/")
+    model_api_base = os.getenv("MODEL_API_BASE", "http://plumber:8000").rstrip("/")
     allowed_email_domain = os.getenv("ALLOWED_EMAIL_DOMAIN")
 
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
-        SESSION_COOKIE_SECURE=str_to_bool(os.getenv("SESSION_COOKIE_SECURE"), False),
+        SESSION_COOKIE_SECURE=False,
     )
 
     oauth = OAuth(app)
@@ -57,7 +58,6 @@ def create_app() -> Flask:
                     return jsonify({"error": "Unauthorized"}), 401
                 return redirect(url_for("login"))
             return view(*args, **kwargs)
-
         return wrapped
 
     @app.get("/")
@@ -129,10 +129,7 @@ def create_app() -> Flask:
                 timeout=30,
             )
         except requests.RequestException as exc:
-            return (
-                jsonify({"error": "Model service unavailable", "message": str(exc)}),
-                502,
-            )
+            app.logger.error(f"Plumber API error: {exc}")
 
         try:
             data = response.json()
