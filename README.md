@@ -297,3 +297,37 @@ Open dashboard through Flask:
 - `POST /api/predict` - requires Google login
 
 The dashboard now calls `/api/predict` (Flask), not Plumber directly.
+
+## Docker Images (Published)
+
+The following Docker images are available on Docker Hub:
+
+| Image | Tag | Image ID | Size |
+|---|---|---|---|
+| `archigarg/arrhythmia-flask` | `v1` | `f3ced2c07e47` | `240MB` |
+| `archigarg/arrhythmia-plumber` | `v1` | `798b2a1bf551` | `1.53GB` |
+
+### Pull images
+
+```bash
+docker pull archigarg/arrhythmia-flask:v1
+docker pull archigarg/arrhythmia-plumber:v1
+```
+
+### Run images
+
+Run Plumber API:
+
+```bash
+docker run -d --name arrhythmia-plumber -p 48641:48641 archigarg/arrhythmia-plumber:v1
+```
+
+Run Flask app:
+
+```bash
+docker run -d --name arrhythmia-flask -p 5000:5000 --env-file backend/flask_app/.env archigarg/arrhythmia-flask:v1
+```
+
+If both containers are running locally, open:
+
+`http://127.0.0.1:5000`
