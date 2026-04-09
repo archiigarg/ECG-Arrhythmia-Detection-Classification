@@ -7,6 +7,12 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    # FIX: healthcheck so Flask waits until plumber has fully loaded the models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   flask:
     build:
@@ -16,5 +22,10 @@ services:
       - "5001:5000"
     env_file:
       - .env
+    environment:
+      # FIX: use the docker-compose service name, not host.docker.internal
+      - MODEL_API_BASE=http://plumber:8000
+    # FIX: wait for plumber to pass its healthcheck before starting Flask
     depends_on:
-      - plumber
+      plumber:
+        condition: service_healthy

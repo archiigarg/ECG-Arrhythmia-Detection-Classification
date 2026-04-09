@@ -9,7 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap"
         rel="stylesheet">
 
     <style>
@@ -73,6 +74,7 @@
         }
 
         @keyframes float {
+
             0%,
             100% {
                 transform: translateY(0);
@@ -164,13 +166,19 @@
             transform: translateY(-1px);
         }
 
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .button-primary {
             background: var(--accent);
             color: #fff;
             box-shadow: 0 8px 24px rgba(26, 160, 96, 0.26);
         }
 
-        .button-primary:hover {
+        .button-primary:hover:not(:disabled) {
             background: var(--accent-dark);
         }
 
@@ -289,6 +297,29 @@
             color: var(--danger);
         }
 
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #173125;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
         @media (max-width: 860px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
@@ -309,6 +340,8 @@
 <body>
     <span class="orb one"></span>
     <span class="orb two"></span>
+
+    <div id="toast" class="toast"></div>
 
     <main class="app-shell">
         <section id="loginView" class="view hidden">
@@ -362,6 +395,7 @@
     </main>
 
     <script>
+        // ─── DOM refs ───────────────────────────────────────────────────────────────
         const loginView = document.getElementById("loginView");
         const dashboardView = document.getElementById("dashboardView");
         const loginButton = document.getElementById("loginButton");
@@ -373,19 +407,31 @@
         const resultMain = document.getElementById("resultMain");
         const resultSub = document.getElementById("resultSub");
         const apiStatus = document.getElementById("apiStatus");
+        const toast = document.getElementById("toast");
 
-        function firstValue(value) {
-            if (Array.isArray(value)) {
-                return value.length > 0 ? value[0] : "";
-            }
-            return value;
+        // ─── Toast ──────────────────────────────────────────────────────────────────
+        let toastTimer = null;
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add("show");
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
         }
 
+        // ─── Helpers ────────────────────────────────────────────────────────────────
+
+        // Plumber wraps scalar values in arrays — unwrap if needed
+        function firstValue(value) {
+            if (Array.isArray(value)) return value.length > 0 ? value[0] : "";
+            return value ?? "";
+        }
+
+        // ─── View management ────────────────────────────────────────────────────────
         function setView(authenticated, user) {
             if (authenticated) {
                 loginView.classList.add("hidden");
                 dashboardView.classList.remove("hidden");
-                const name = (user && user.name) ? user.name : (user && user.email ? user.email : "Signed in user");
+                const name = user?.name || user?.email || "Signed in user";
                 userPill.textContent = "Signed in as " + name;
             } else {
                 dashboardView.classList.add("hidden");
@@ -399,66 +445,54 @@
             resultBox.classList.toggle("result-error", !!isError);
         }
 
-        async function parseApiResponse(response) {
-            const rawText = await response.text();
-            try {
-                return {
-                    data: JSON.parse(rawText),
-                    rawText: rawText
-                };
-            } catch (parseError) {
-                return {
-                    data: null,
-                    rawText: rawText
-                };
-            }
-        }
-
+        // ─── Auth ───────────────────────────────────────────────────────────────────
         async function checkAuth() {
             try {
                 const response = await fetch("/api/me");
-                if (!response.ok) {
-                    setView(false);
-                    return false;
-                }
-
+                if (!response.ok) { setView(false); return false; }
                 const payload = await response.json();
                 setView(payload.authenticated, payload.user);
                 return !!payload.authenticated;
-            } catch (error) {
+            } catch {
                 setView(false);
                 return false;
             }
         }
 
+        // ─── Health check ────────────────────────────────────────────────────────────
         async function updateHealthStatus() {
             try {
                 const response = await fetch("/healthz");
                 apiStatus.innerHTML = response.ok
                     ? '<span class="status-dot status-ok"></span>API connected'
                     : '<span class="status-dot" style="background:#c9a83f"></span>API uncertain';
-            } catch (error) {
+            } catch {
                 apiStatus.innerHTML = '<span class="status-dot" style="background:#b32746"></span>API unreachable';
             }
         }
 
+        // ─── Result display ──────────────────────────────────────────────────────────
         function displayResult(result) {
             const prediction = String(firstValue(result.prediction) || "");
             const arrhythmiaType = String(firstValue(result.arrhythmia_type) || "");
 
-            if (prediction.toLowerCase().includes("normal")) {
-                setResult("Normal ECG", "No abnormal rhythm class detected in this sample.", false);
+            if (prediction.toLowerCase().includes("abnormal")) {
+                const sub = arrhythmiaType
+                    ? "Detected class: " + arrhythmiaType
+                    : "Abnormal rhythm pattern detected.";
+                setResult("Abnormal ECG ⚠️", sub, false);
                 return;
             }
 
-            if (prediction.toLowerCase().includes("abnormal")) {
-                setResult("Abnormal ECG", arrhythmiaType ? "Detected class: " + arrhythmiaType : "Abnormal rhythm pattern detected.", false);
+            if (prediction.toLowerCase().includes("normal")) {
+                setResult("Normal ECG ✅", "No abnormal rhythm class detected in this sample.", false);
                 return;
             }
 
             setResult("Model Response", JSON.stringify(result), false);
         }
 
+        // ─── Prediction ──────────────────────────────────────────────────────────────
         async function predictECG() {
             const isAuthenticated = await checkAuth();
             if (!isAuthenticated) {
@@ -469,58 +503,58 @@
             const file = csvFileInput.files[0];
             if (!file) {
                 setResult("No File Selected", "Upload a CSV feature file first.", true);
+                showToast("Please select a CSV file first.");
                 return;
             }
 
             predictButton.disabled = true;
-            predictButton.textContent = "Predicting...";
-            setResult("Running Prediction", "Sending feature payload to API...", false);
+            predictButton.textContent = "Predicting…";
+            setResult("Running Prediction", "Sending feature payload to API…", false);
 
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
+                dynamicTyping: true,   // ← converts all numeric strings to actual numbers
                 complete: async function (results) {
-                    const jsonData = results.data[0];
-
-                    if (!jsonData) {
-                        setResult("Invalid CSV", "No data row found in the uploaded file.", true);
-                        predictButton.disabled = false;
-                        predictButton.textContent = "Predict";
-                        return;
-                    }
-
                     try {
-                        const response = await fetch("/api/predict", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify(jsonData)
-                        });
+                        const jsonData = results.data[0];
 
-                        const parsed = await parseApiResponse(response);
-                        const result = parsed.data;
-
-                        if (!response.ok) {
-                            const message = result && (firstValue(result.message) || firstValue(result.error));
-                            setResult("Prediction Failed", message || parsed.rawText || "Prediction request failed", true);
+                        if (!jsonData) {
+                            setResult("Invalid CSV", "No data row found in the uploaded file.", true);
                             return;
                         }
 
-                        if (!result) {
-                            setResult("Invalid API Response", parsed.rawText || "Received an unreadable response.", true);
+                        const response = await fetch("/api/predict", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(jsonData),
+                        });
+
+                        let result;
+                        try {
+                            result = await response.json();
+                        } catch {
+                            setResult("Invalid API Response", "Received an unreadable response from the server.", true);
+                            return;
+                        }
+
+                        if (!response.ok) {
+                            const message = firstValue(result?.message) || firstValue(result?.error) || "Prediction request failed";
+                            setResult("Prediction Failed", message, true);
                             return;
                         }
 
                         displayResult(result);
+
                     } catch (error) {
                         setResult("Connection Error", error.message || "Unable to reach the API.", true);
-                        console.error("Prediction request failed", error);
+                        console.error("Prediction request failed:", error);
                     } finally {
                         predictButton.disabled = false;
                         predictButton.textContent = "Predict";
                     }
                 },
+
                 error: function (error) {
                     setResult("CSV Parse Error", error.message || "Could not read the CSV file.", true);
                     predictButton.disabled = false;
@@ -529,16 +563,12 @@
             });
         }
 
-        loginButton.addEventListener("click", function () {
-            window.location.href = "/login";
-        });
-
-        logoutButton.addEventListener("click", function () {
-            window.location.href = "/logout";
-        });
-
+        // ─── Event listeners ─────────────────────────────────────────────────────────
+        loginButton.addEventListener("click", () => window.location.href = "/login");
+        logoutButton.addEventListener("click", () => window.location.href = "/logout");
         predictButton.addEventListener("click", predictECG);
 
+        // ─── Init ────────────────────────────────────────────────────────────────────
         checkAuth();
         updateHealthStatus();
     </script>
