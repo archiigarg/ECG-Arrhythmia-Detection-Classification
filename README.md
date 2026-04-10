@@ -159,26 +159,63 @@ This dashboard improves interpretability and enables quick exploratory analysis 
 
 ```
 ECG-Arrhythmia-Detection-Classification/
+├── backend/
+│ ├── flask_app/
+│ │ ├── templates/
+│ │ │ └── index.html
+│ │ ├── app.py
+│ │ ├── requirements.txt
+│ │ ├── sample_abnormal.csv
+│ │ └── sample_normal.csv
+│ │
+│ └── plumber/
+│ └── plumber.R
 │
 ├── data/
-│   ├── raw/                 # Original PTB-XL dataset files
-│   └── processed/           # Cleaned CSV dataset
+│ ├── dataset_clean.rds
+│ ├── dataset_features.rds
+│ └── metadata.csv
 │
-├── notebooks/
-│   ├── 01_eda.ipynb
-│   ├── 02_preprocessing.ipynb
-│   ├── 03_detection_model.ipynb
-│   └── 04_classification_model.ipynb
+├── frontend/
+│ └── dashboard/
+│ └── index.html
 │
-├── results/                 # Model outputs and plots
+├── outputs/
+│ ├── model/
+│ │ ├── rf_stage1_binary.rds
+│ │ └── rf_stage2_multiclass.rds
+│ │
+│ └── plots/
+│ ├── plot1_class_distribution.png
+│ ├── plot2_aha_distribution.png
+│ ├── plot3_lead_boxplot.png
+│ ├── plot4_correlation_heatmap.png
+│ ├── plot5_age_distribution.png
+│ └── dashboard_preview.png
 │
 ├── powerbi/
-│   └── ecg_dashboard.pbix
+│ ├── ecg_dashboard.pbix
+│ ├── ecg_results.csv
+│ └── model_metrics.csv
 │
-├── src/                     # Utility scripts (if applicable)
+├── R/
+│ ├── 01_data_acquisition.R
+│ ├── 02_preprocessing.R
+│ ├── 03_eda.R
+│ └── 04_modeling.R
 │
-├── README.md
-└── requirements.txt
+├── abnormal_type_31.csv
+├── abnormal_type_37.csv
+│
+├── docker-compose.yml
+├── Dockerfile
+├── Dockerfile.flask
+│
+├── .dockerignore
+├── .env
+├── .gitignore
+│
+└── README.md
 ```
 
 ---
@@ -200,30 +237,6 @@ ECG-Arrhythmia-Detection-Classification/
 * Confusion Matrix
 
 Special attention is given to **class imbalance**, which is common in ECG diagnostic datasets.
-
----
-
-## 👥 Collaborators
-
-* Ridhima Joshi
-* Archi Garg
-
----
-
-## 🚀 Future Work
-
-Potential improvements include:
-
-* Applying deep learning models (CNN / LSTM) on ECG waveform signals
-* Implementing cost-sensitive learning for rare diagnostic classes
-* Deploying as a clinical decision-support web application
-* Integrating with real-time ECG acquisition pipelines
-
----
-
-## ⚠️ Disclaimer
-
-This project is intended for **academic and research purposes only**. It is not a certified medical diagnostic system and should not be used for clinical decision-making without professional validation.
 
 ---
 
@@ -331,3 +344,30 @@ docker run -d --name arrhythmia-flask -p 5000:5000 --env-file backend/flask_app/
 If both containers are running locally, open:
 
 `http://127.0.0.1:5000`
+
+
+---
+
+## 👥 Collaborators
+
+* Ridhima Joshi
+* Archi Garg
+
+---
+
+## 🚀 Future Work
+
+Potential improvements include:
+
+* Applying deep learning models (CNN / LSTM) on ECG waveform signals
+* Implementing cost-sensitive learning for rare diagnostic classes
+* Deploying as a clinical decision-support web application
+* Integrating with real-time ECG acquisition pipelines
+
+---
+
+## ⚠️ Disclaimer
+
+This project is intended for **academic and research purposes only**. It is not a certified medical diagnostic system and should not be used for clinical decision-making without professional validation.
+
+---
