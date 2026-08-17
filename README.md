@@ -68,7 +68,6 @@ Abnormal → Any diagnostic abnormal ECG pattern
 **Models used:**
 
 * Random Forest
-* Gradient Boosting / XGBoost
 
 ---
 
