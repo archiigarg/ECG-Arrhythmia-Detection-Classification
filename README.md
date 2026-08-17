@@ -133,15 +133,7 @@ This dashboard improves interpretability and enables quick exploratory analysis 
 ### Programming Language
 
 * Python
-
-### Libraries Used
-
-* pandas
-* numpy
-* scikit-learn
-* XGBoost
-* matplotlib
-* seaborn
+* R
 
 ### Visualization Tools
 
